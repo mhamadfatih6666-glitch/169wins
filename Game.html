@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+<html lang="ckb">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes, viewport-fit=cover">
+    <title>169Wins - Aviator</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; -webkit-tap-highlight-color: transparent; }
+        body { background: #0a0c15; font-family: 'Segoe UI', system-ui, sans-serif; padding: 12px; }
+        .game-container { max-width: 500px; margin: 0 auto; }
+        
+        .balance-header { background: linear-gradient(135deg, #0f1222, #080b14); border-radius: 30px; padding: 10px 18px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; border: 1px solid #2a2e45; }
+        .balance-label { color: #8892b0; font-size: 0.75rem; }
+        .balance-value { color: #facc15; font-size: 1.4rem; font-weight: bold; }
+        .balance-currency { color: #8892b0; font-size: 0.7rem; }
+        .username-label { color: #facc15; font-size: 0.8rem; font-weight: bold; margin-right: 10px; }
+        .logout-btn { background: #dc2626; padding: 5px 12px; border-radius: 30px; border: none; color: white; cursor: pointer; font-size: 0.65rem; }
+        
+        .countdown { background: #0f1222; border-radius: 20px; padding: 6px; text-align: center; margin-bottom: 12px; border: 1px solid #2a2e45; }
+        .countdown-time { color: #10b981; font-size: 1rem; font-weight: bold; font-family: monospace; }
+        .countdown-label { color: #a0a8c0; font-size: 0.65rem; }
+        
+        .multiplier-area { background: radial-gradient(ellipse at center, #1a1f35, #0a0c15); border-radius: 30px; padding: 15px; margin-bottom: 12px; text-align: center; position: relative; min-height: 200px; }
+        .current-multiplier { font-size: 3rem; font-weight: 800; color: #ffdd99; font-family: monospace; text-shadow: 0 0 10px rgba(250,204,21,0.3); }
+        .flight-zone { position: relative; height: 110px; margin: 5px 0; overflow: visible; }
+        .aircraft { position: absolute; left: 0%; bottom: 0%; transition: none; font-size: 38px; filter: drop-shadow(0 2px 5px rgba(0,0,0,0.5)); z-index: 10; }
+        .crash-message { color: #ef4444; font-weight: bold; margin-top: 8px; font-size: 1rem; }
+        
+        .history-results { display: flex; gap: 5px; flex-wrap: wrap; justify-content: center; margin-bottom: 12px; }
+        .history-item { background: #1a1f35; padding: 3px 6px; border-radius: 10px; font-size: 0.6rem; font-weight: bold; cursor: pointer; color: white; }
+        .history-item.red { color: #ff8888; background: #2a1a1a; }
+        .history-item.green { color: #88ff88; background: #1a2a1a; }
+        
+        .bet-controls { background: #0f1222; border-radius: 24px; padding: 10px; margin-bottom: 12px; border: 1px solid #2a2e45; }
+        .bet-row { display: flex; justify-content: center; gap: 5px; flex-wrap: wrap; margin-bottom: 10px; }
+        .bet-preset { background: #1a1f35; border: none; padding: 6px 10px; border-radius: 30px; color: white; font-weight: bold; cursor: pointer; min-width: 55px; font-size: 0.7rem; }
+        .bet-preset.active { background: #facc15; color: #0a0c16; }
+        .bet-custom { display: flex; align-items: center; gap: 6px; background: #1a1f35; padding: 3px 10px; border-radius: 30px; }
+        .bet-custom button { background: #2a2e45; border: none; width: 30px; height: 30px; border-radius: 50%; color: white; font-size: 1rem; cursor: pointer; }
+        .bet-custom input { background: transparent; border: none; color: #facc15; font-size: 0.9rem; font-weight: bold; width: 80px; text-align: center; }
+        .bet-custom span { color: #a0a8c0; font-size: 0.7rem; }
+        
+        .action-buttons { display: flex; gap: 12px; margin-bottom: 12px; }
+        .action-btn { flex: 1; padding: 12px; border-radius: 50px; font-weight: bold; font-size: 0.9rem; border: none; cursor: pointer; }
+        .btn-bet { background: #10b981; color: white; }
+        .btn-cash { background: #f59e0b; color: #1a1a2e; }
+        .action-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        
+        .round-info { text-align: center; color: #a0a8c0; font-size: 0.7rem; margin-bottom: 10px; }
+        .round-info button { background: #1e88e5; border: none; padding: 3px 10px; border-radius: 20px; color: white; margin-left: 8px; cursor: pointer; font-size: 0.65rem; }
+        
+        .tabs { display: flex; gap: 4px; background: #0f1222; border-radius: 30px; padding: 4px; margin-bottom: 10px; }
+        .tab { flex: 1; padding: 8px; text-align: center; background: transparent; border: none; color: #a0a8c0; font-weight: bold; border-radius: 30px; cursor: pointer; font-size: 0.7rem; }
+        .tab.active { background: #1a1f35; color: #facc15; }
+        
+        .results-panel { background: #0f1222; border-radius: 20px; padding: 10px; min-height: 120px; border: 1px solid #2a2e45; }
+        .stats-row { display: flex; justify-content: space-between; margin-bottom: 8px; color: #a0a8c0; font-size: 0.65rem; }
+        .bets-list { max-height: 85px; overflow-y: auto; color: white; font-size: 0.65rem; }
+        .bet-row-item { display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px solid #1a1f35; color: white; }
+        
+        .telegram-section { background: #1a1f35; border-radius: 30px; padding: 8px 14px; margin-top: 10px; display: flex; justify-content: space-between; align-items: center; }
+        .telegram-section span { color: #a0a8c0; font-size: 0.65rem; }
+        .telegram-link { background: #1e88e5; padding: 5px 12px; border-radius: 30px; color: white; text-decoration: none; font-weight: bold; font-size: 0.65rem; }
+        
+        .auth-section { background: #0f1222; border-radius: 30px; padding: 20px; margin-bottom: 12px; }
+        .auth-input { width: 100%; padding: 12px; border-radius: 30px; border: none; background: #1a1f35; color: white; margin-bottom: 10px; text-align: center; }
+        .auth-input::placeholder { color: #8892b0; }
+        .auth-btn { background: #facc15; color: #0a0c16; padding: 12px; border-radius: 30px; font-weight: bold; border: none; margin: 5px; cursor: pointer; width: calc(50% - 10px); }
+        .log-area { background: #0a0c15; border-radius: 20px; padding: 6px; margin-top: 10px; max-height: 80px; overflow-y: auto; color: #b9cbea; font-size: 0.6rem; }
+        .hidden { display: none; }
+        
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 1000; justify-content: center; align-items: center; }
+        .modal-content { background: #0f1222; border-radius: 30px; padding: 20px; max-width: 90%; max-height: 80%; overflow-y: auto; border: 1px solid #facc15; }
+        .modal-content h4 { color: #facc15; margin-bottom: 10px; font-size: 1rem; }
+        .modal-content p { color: white; font-size: 0.65rem; word-break: break-all; margin-bottom: 8px; }
+        .close-modal { background: #facc15; border: none; padding: 6px 16px; border-radius: 30px; margin-top: 10px; cursor: pointer; }
+    </style>
+</head>
+<body>
+<div class="game-container">
+    <div id="authContainer"></div>
+    <div id="gameContainer" class="hidden"></div>
+</div>
+
+<div id="fairnessModal" class="modal">
+    <div class="modal-content">
+        <h4>🔒 Provably Fair - ئەنجامی خول</h4>
+        <p><strong>Round ID:</strong> <span id="modalRoundId" style="color:#facc15;"></span></p>
+        <p><strong>Server Seed:</strong> <span id="modalServerSeed" style="color:#88ff88;"></span></p>
+        <p><strong>Client Seed:</strong> <span id="modalClientSeed" style="color:#88ff88;"></span></p>
+        <p><strong>Nonce:</strong> <span id="modalNonce" style="color:#facc15;"></span></p>
+        <p><strong>SHA512 Hash:</strong> <span id="modalHash" style="color:#88ccff; font-size:0.6rem;"></span></p>
+        <button class="close-modal" onclick="document.getElementById('fairnessModal').style.display='none'">داخستن</button>
+    </div>
+</div>
+
+<script>
+    const STORAGE_USERS = "169wins_users_final2";
+    const STORAGE_SESSION = "169wins_session_final2";
+    const STORAGE_HISTORY = "169wins_history_final2";
+
+    function loadUsers() {
+        let data = localStorage.getItem(STORAGE_USERS);
+        if (!data) {
+            let defaultUsers = [
+                { username: "player1", password: "1234", balance: 50000 },
+                { username: "test", password: "test", balance: 100000 }
+            ];
+            localStorage.setItem(STORAGE_USERS, JSON.stringify(defaultUsers));
+            return defaultUsers;
+        }
+        return JSON.parse(data);
+    }
+
+    function saveUsers(users) { localStorage.setItem(STORAGE_USERS, JSON.stringify(users)); }
+    
+    function getCurrentUser() {
+        let sess = localStorage.getItem(STORAGE_SESSION);
+        if (!sess) return null;
+        try { return JSON.parse(sess); } catch(e) { return null; }
+    }
+    
+    function setCurrentUser(user) {
+        if (user) localStorage.setItem(STORAGE_SESSION, JSON.stringify({ username: user.username, password: user.password }));
+        else localStorage.removeItem(STORAGE_SESSION);
+    }
+    
+    function loadHistory() {
+        let data = localStorage.getItem(STORAGE_HISTORY);
+        if (!data) return [];
+        return JSON.parse(data);
+    }
+    
+    function saveHistory(history) {
+        let recent = history.slice(-12);
+        localStorage.setItem(STORAGE_HISTORY, JSON.stringify(recent));
+    }
+    
+    async function generateHash(serverSeed, clientSeed, nonce, roundId) {
+        const data = `${serverSeed}:${clientSeed}:${nonce}:${roundId}`;
+        const encoder = new TextEncoder();
+        const hashBuffer = await crypto.subtle.digest('SHA-512', encoder.encode(data));
+        const hashArray = Array.from(new Uint8Array(hashBuffer));
+        return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    }
+    
+    function getRandomCrashFromHash(hash) {
+        const hex = hash.substring(0, 8);
+        const decimal = parseInt(hex, 16);
+        const r = decimal / 0xffffffff;
+        let crash = 1 / (1 - (r * 0.98));
+        crash = Math.min(50, Math.max(1.00, crash));
+        return Math.round(crash * 100) / 100;
+    }
+    
+    async function generateRound() {
+        const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+        const serverSeed = Array(32).fill().map(() => chars[Math.floor(Math.random()*62)]).join('');
+        const clientSeed = Array(16).fill().map(() => chars[Math.floor(Math.random()*62)]).join('');
+        const nonce = Math.floor(Math.random() * 1000000);
+        const roundId = Math.floor(Math.random() * 9999999) + 1000000;
+        const hash = await generateHash(serverSeed, clientSeed, nonce, roundId);
+        const crashPoint = getRandomCrashFromHash(hash);
+        return { roundId, serverSeed, clientSeed, nonce, hash, crashPoint };
+    }
+    
+    let currentUser = null;
+    let gamePhase = "betting";
+    let bettingTime = 5.0;
+    let bettingInterval = null;
+    let mult = 1.00;
+    let crashPoint = 1.00;
+    let betPlaced = false;
+    let betAmount = 0;
+    let cashedOut = false;
+    let multInterval = null;
+    let flyInterval = null;
+    let selectedBet = 100;
+    let activeTab = "all";
+    let myBets = [];
+    let currentRound = null;
+    let allRounds = [];
+    
+    const betValues = [100, 250, 500, 1000, 2000, 5000, 10000, 20000, 50000, 100000];
+    
+    function formatNum(n) { return n.toLocaleString(); }
+    
+    function updateBalance() {
+        let el = document.getElementById("balanceValue");
+        if (el && currentUser) el.innerText = formatNum(currentUser.balance);
+        let usernameEl = document.getElementById("usernameDisplay");
+        if (usernameEl && currentUser) usernameEl.innerText = currentUser.username;
+    }
+    
+    function updateUI() {
+        let betBtn = document.getElementById("betBtn");
+        let cashBtn = document.getElementById("cashBtn");
+        if (betBtn) betBtn.disabled = !(gamePhase === "betting" && !betPlaced);
+        if (cashBtn) cashBtn.disabled = !(gamePhase === "flying" && betPlaced && !cashedOut);
+        
+        let cdSpan = document.getElementById("countdownTime");
+        let cdLabel = document.getElementById("countdownLabel");
+        if (gamePhase === "betting") {
+            if (cdSpan) cdSpan.innerText = bettingTime.toFixed(1);
+            if (cdLabel) cdLabel.innerText = "کاتی BET کردن";
+        } else if (gamePhase === "flying") {
+            if (cdSpan) cdSpan.innerText = "فڕین";
+            if (cdLabel) cdLabel.innerText = "فڕۆکە لە فڕیندایە";
+        } else {
+            if (cdSpan) cdSpan.innerText = "کەوت!";
+            if (cdLabel) cdLabel.innerText = "CRASH";
+        }
+        
+        let multSpan = document.getElementById("currentMultiplier");
+        if (multSpan) multSpan.innerText = mult.toFixed(2) + "x";
+        
+        let roundSpan = document.getElementById("roundNumber");
+        if (roundSpan && currentRound) roundSpan.innerText = "#" + currentRound.roundId;
+    }
+    
+    function updateHistory() {
+        let history = loadHistory();
+        let container = document.getElementById("historyResults");
+        if (!container) return;
+        container.innerHTML = "";
+        [...history].reverse().slice(0,14).forEach(val => {
+            let div = document.createElement("div");
+            div.className = "history-item " + (val >= 2 ? "green" : "red");
+            div.innerText = "x" + val.toFixed(2);
+            let found = allRounds.find(r => r.crashPoint === val);
+            if (found) {
+                div.onclick = () => {
+                    document.getElementById("modalRoundId").innerText = found.roundId;
+                    document.getElementById("modalServerSeed").innerText = found.serverSeed;
+                    document.getElementById("modalClientSeed").innerText = found.clientSeed;
+                    document.getElementById("modalNonce").innerText = found.nonce;
+                    document.getElementById("modalHash").innerText = found.hash;
+                    document.getElementById("fairnessModal").style.display = "flex";
+                };
+            }
+            container.appendChild(div);
+        });
+    }
+    
+    function updateResults() {
+        let container = document.getElementById("resultsList");
+        if (!container) return;
+        if (activeTab === "all") {
+            let history = loadHistory();
+            container.innerHTML = "";
+            [...history].reverse().slice(0,20).forEach((val,i) => {
+                let div = document.createElement("div");
+                div.className = "bet-row-item";
+                div.innerHTML = `<span>خول ${i+1}</span><span>x${val.toFixed(2)}</span>`;
+                container.appendChild(div);
+            });
+        } else if (activeTab === "mybets") {
+            container.innerHTML = "";
+            if (myBets.length === 0) {
+                container.innerHTML = "<div style='text-align:center;padding:15px;color:#a0a8c0'>هیچ بتێک نییە</div>";
+            } else {
+                [...myBets].reverse().slice(0,20).forEach(bet => {
+                    let div = document.createElement("div");
+                    div.className = "bet-row-item";
+                    let res = bet.won ? `🏆 برد ${formatNum(bet.win)}` : `💥 دۆڕا ${formatNum(bet.amount)}`;
+                    div.innerHTML = `<span>${bet.mult}x</span><span>${res}</span>`;
+                    container.appendChild(div);
+                });
+            }
+        } else {
+            let totalVol = myBets.reduce((s,b) => s + b.amount, 0);
+            let totalWin = myBets.filter(b => b.won).reduce((s,b) => s + b.win, 0);
+            document.getElementById("totalVolume").innerText = formatNum(totalVol);
+            document.getElementById("totalWin").innerText = formatNum(totalWin);
+            container.innerHTML = `<div style="padding:8px;"><span>Total Bets: ${myBets.length}</span><span> | Win Rate: ${myBets.length ? Math.round(myBets.filter(b=>b.won).length/myBets.length*100) : 0}%</span></div>`;
+        }
+    }
+    
+    function stopAll() {
+        if (bettingInterval) clearInterval(bettingInterval);
+        if (multInterval) clearInterval(multInterval);
+        if (flyInterval) clearInterval(flyInterval);
+        bettingInterval = multInterval = flyInterval = null;
+    }
+    
+    function setPlane(x, y) {
+        let plane = document.getElementById("plane");
+        if (plane) { plane.style.left = x + "%"; plane.style.bottom = y + "%"; }
+    }
+    
+    function crashAnim() {
+        let plane = document.getElementById("plane");
+        if (plane) {
+            plane.style.transition = "all 0.2s ease";
+            plane.style.left = "80%";
+            plane.style.bottom = "-5%";
+            plane.style.transform = "rotate(180deg) scale(0.5)";
+            setTimeout(() => {
+                if (plane) {
+                    plane.style.transition = "";
+                    plane.style.left = "0%";
+                    plane.style.bottom = "0%";
+                    plane.style.transform = "rotate(0deg) scale(1)";
+                }
+            }, 500);
+        }
+    }
+    
+    async function doCrash() {
+        if (gamePhase !== "flying") return;
+        stopAll();
+        gamePhase = "crashed";
+        let history = loadHistory();
+        history.push(mult);
+        saveHistory(history);
+        updateHistory();
+        let msg = document.getElementById("crashMessage");
+        if (msg) { msg.innerText = "💥 CRASH! 💥"; setTimeout(() => { if(msg) msg.innerText = ""; }, 1500); }
+        crashAnim();
+        if (betPlaced && !cashedOut) {
+            addLog(`💥 کرش لە ${mult.toFixed(2)}x - دۆڕا ${formatNum(betAmount)} د.ع`);
+            myBets.push({ amount: betAmount, mult: mult, won: false, win: 0 });
+            updateResults();
+        }
+        if (currentRound) allRounds.push(currentRound);
+        betPlaced = false; cashedOut = false; betAmount = 0;
+        updateUI();
+        setTimeout(() => { startNewRound(); }, 2000);
+    }
+    
+    function startFlight() {
+        if (!currentRound) return;
+        gamePhase = "flying";
+        mult = 1.00;
+        cashedOut = false;
+        crashPoint = currentRound.crashPoint;
+        addLog(`🛩️ فڕۆکەکە دەست بە فڕین کرد | Round #${currentRound.roundId} | کرش ${crashPoint.toFixed(2)}x`);
+        let step = 0;
+        flyInterval = setInterval(() => {
+            if (gamePhase !== "flying") return;
+            step++;
+            let p = Math.min(1, step / 75);
+            setPlane(p * 85, p * 75);
+            if (step >= 75 && gamePhase === "flying" && !cashedOut) doCrash();
+        }, 40);
+        multInterval = setInterval(() => {
+            if (gamePhase !== "flying") return;
+            mult += 0.018;
+            mult = Math.round(mult * 100) / 100;
+            updateUI();
+            if (mult >= crashPoint) doCrash();
+        }, 65);
+    }
+    
+    async function startNewRound() {
+        stopAll();
+        gamePhase = "betting";
+        bettingTime = 5.0;
+        betPlaced = false;
+        cashedOut = false;
+        betAmount = 0;
+        mult = 1.00;
+        currentRound = await generateRound();
+        setPlane(0, 0);
+        updateUI();
+        bettingInterval = setInterval(() => {
+            if (gamePhase !== "betting") return;
+            bettingTime -= 0.1;
+            updateUI();
+            if (bettingTime <= 0) {
+                clearInterval(bettingInterval);
+                bettingInterval = null;
+                startFlight();
+            }
+        }, 100);
+        addLog(`⏳ خول #${currentRound.roundId} - ${bettingTime.toFixed(1)} چرکە کاتی BET`);
+    }
+    
+    function placeBetFunc() {
+        if (!currentUser) return;
+        if (gamePhase !== "betting") { addLog("تەنها لە کاتی BET کردن", true); return; }
+        if (betPlaced) { addLog("پێشتر بت کرا", true); return; }
+        if (selectedBet <= 0) return;
+        if (currentUser.balance < selectedBet) { addLog("باڵانس بەس نییە", true); return; }
+        currentUser.balance -= selectedBet;
+        let users = loadUsers();
+        let idx = users.findIndex(u => u.username === currentUser.username);
+        if (idx !== -1) users[idx].balance = currentUser.balance;
+        saveUsers(users);
+        betPlaced = true;
+        betAmount = selectedBet;
+        addLog(`💰 بت ${formatNum(selectedBet)} د.ع کرا لە خول #${currentRound.roundId}`);
+        updateBalance();
+        updateUI();
+    }
+    
+    function cashOutFunc() {
+        if (!currentUser) return;
+        if (gamePhase !== "flying") { addLog("تەنها لە کاتی فڕیندا", true); return; }
+        if (!betPlaced || cashedOut) return;
+        let win = Math.floor(betAmount * mult);
+        currentUser.balance += win;
+        let users = loadUsers();
+        let idx = users.findIndex(u => u.username === currentUser.username);
+        if (idx !== -1) users[idx].balance = currentUser.balance;
+        saveUsers(users);
+        cashedOut = true;
+        addLog(`🎉 کاش ئاوت! بردی ${formatNum(win)} د.ع لە ${mult.toFixed(2)}x`);
+        myBets.push({ amount: betAmount, mult: mult, won: true, win: win });
+        updateResults();
+        updateBalance();
+        updateUI();
+        let msg = document.getElementById("crashMessage");
+        if (msg) { msg.innerText = "✅ کاش ئاوت کرا! فڕۆکە بەردەوامە"; setTimeout(() => { if(msg && msg.innerText !== "💥 CRASH! 💥") msg.innerText = ""; }, 1500); }
+    }
+    
+    function showFairness() {
+        if (currentRound) {
+            document.getElementById("modalRoundId").innerText = currentRound.roundId;
+            document.getElementById("modalServerSeed").innerText = currentRound.serverSeed;
+            document.getElementById("modalClientSeed").innerText = currentRound.clientSeed;
+            document.getElementById("modalNonce").innerText = currentRound.nonce;
+            document.getElementById("modalHash").innerText = currentRound.hash;
+            document.getElementById("fairnessModal").style.display = "flex";
+        }
+    }
+    
+    function addLog(msg, err = false) {
+        let log = document.getElementById("logArea");
+        if (!log) return;
+        let line = document.createElement("div");
+        line.innerHTML = err ? `⚠️ ${msg}` : `✈️ ${msg}`;
+        line.style.color = err ? "#f97316" : "#b9cbea";
+        line.style.padding = "3px 0";
+        line.style.borderBottom = "1px solid #1a1f35";
+        line.style.fontSize = "0.6rem";
+        log.prepend(line);
+        if (log.children.length > 12) log.removeChild(log.lastChild);
+    }
+    
+    function renderAuth() {
+        let container = document.getElementById("authContainer");
+        container.innerHTML = `
+            <div class="auth-section">
+                <h3 style="color:#facc15; text-align:center;">✈️ 169Wins Aviator</h3>
+                <input type="text" id="loginUsername" class="auth-input" placeholder="ناوی بەکارهێنەر">
+                <input type="password" id="loginPassword" class="auth-input" placeholder="ڕەمز">
+                <div style="display:flex; gap:10px;">
+                    <button id="doLoginBtn" class="auth-btn">🔐 داخڵبوون</button>
+                    <button id="showRegisterBtn" class="auth-btn" style="background:#2d3a6e;">➕ نوێ</button>
+                </div>
+            </div>
+            <div id="authMessage" style="color:#f97316; text-align:center;"></div>
+        `;
+        document.getElementById("doLoginBtn").onclick = () => {
+            let un = document.getElementById("loginUsername").value.trim();
+            let pw = document.getElementById("loginPassword").value.trim();
+            let users = loadUsers();
+            let user = users.find(u => u.username === un && u.password === pw);
+            if (!user) { document.getElementById("authMessage").innerHTML = "ناو یان ڕەمز هەڵەیە"; return; }
+            setCurrentUser(user);
+            renderGame();
+        };
+        document.getElementById("showRegisterBtn").onclick = () => renderRegister();
+    }
+    
+    function renderRegister() {
+        let container = document.getElementById("authContainer");
+        container.innerHTML = `
+            <div class="auth-section">
+                <h3 style="color:#facc15; text-align:center;">ئەکاونتێکی نوێ</h3>
+                <input type="text" id="regUsername" class="auth-input" placeholder="ناو">
+                <input type="password" id="regPassword" class="auth-input" placeholder="ڕەمز">
+                <div style="display:flex; gap:10px;">
+                    <button id="doRegisterBtn" class="auth-btn">✅ دروستی بکە</button>
+                    <button id="backBtn" class="auth-btn" style="background:#4a5568;">🔙 گەڕانەوە</button>
+                </div>
+            </div>
+            <div id="authMessage" style="color:#f97316; text-align:center;"></div>
+        `;
+        document.getElementById("doRegisterBtn").onclick = () => {
+            let un = document.getElementById("regUsername").value.trim();
+            let pw = document.getElementById("regPassword").value.trim();
+            if (un.length < 3) { showMsg("ناو با 3 پیت بێت"); return; }
+            let users = loadUsers();
+            if (users.find(u => u.username === un)) { showMsg("ئەم ناوە هەیە"); return; }
+            users.push({ username: un, password: pw, balance: 0 });
+            saveUsers(users);
+            setCurrentUser({ username: un, password: pw, balance: 0 });
+            renderGame();
+        };
+        document.getElementById("backBtn").onclick = () => renderAuth();
+        function showMsg(m) { let d = document.getElementById("authMessage"); if(d) d.innerHTML = m; setTimeout(() => { if(d && d.innerHTML === m) d.innerHTML = ""; }, 2000); }
+    }
+    
+    function renderGame() {
+        let sess = getCurrentUser();
+        if (!sess) { renderAuth(); return; }
+        let users = loadUsers();
+        let found = users.find(u => u.username === sess.username && u.password === sess.password);
+        if (!found) { setCurrentUser(null); renderAuth(); return; }
+        currentUser = found;
+        myBets = [];
+        allRounds = [];
+        
+        document.getElementById("authContainer").style.display = "none";
+        let gameDiv = document.getElementById("gameContainer");
+        gameDiv.classList.remove("hidden");
+        gameDiv.innerHTML = `
+            <div class="balance-header">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <span class="username-label" id="usernameDisplay">${currentUser.username}</span>
+                    <span><span class="balance-label">Balance:</span> <span class="balance-value" id="balanceValue">${formatNum(currentUser.balance)}</span> <span class="balance-currency">د.ع</span></span>
+                </div>
+                <button id="logoutBtn" class="logout-btn">دەرچوون</button>
+            </div>
+            <div class="countdown">
+                <span class="countdown-label" id="countdownLabel">کاتی BET کردن</span>
+                <span class="countdown-time" id="countdownTime">5.0</span>
+            </div>
+            <div class="multiplier-area">
+                <div class="current-multiplier" id="currentMultiplier">1.00x</div>
+                <div class="flight-zone">
+                    <div class="aircraft" id="plane" style="left:0%; bottom:0%;">✈️</div>
+                </div>
+                <div class="crash-message" id="crashMessage"></div>
+            </div>
+            <div class="history-results" id="historyResults"></div>
+            <div class="bet-controls">
+                <div class="bet-row" id="betPresetsRow"></div>
+                <div class="bet-row">
+                    <div class="bet-custom">
+                        <button id="decBet">-</button>
+                        <input type="text" id="customBetInput" value="100">
+                        <button id="incBet">+</button>
+                        <span>BET</span>
+                    </div>
+                </div>
+            </div>
+            <div class="action-buttons">
+                <button id="betBtn" class="action-btn btn-bet">BET</button>
+                <button id="cashBtn" class="action-btn btn-cash">CASH OUT</button>
+            </div>
+            <div class="round-info">
+                Round: <span id="roundNumber">#---</span> 
+                <button id="fairnessBtn">🔒 Fairness</button>
+            </div>
+            <div class="tabs">
+                <button class="tab active" data-tab="all">All Bets</button>
+                <button class="tab" data-tab="mybets">My Bets</button>
+                <button class="tab" data-tab="results">Results</button>
+            </div>
+            <div class="results-panel">
+                <div class="stats-row"><span>Volume: <span id="totalVolume">0</span></span><span>Total Win: <span id="totalWin">0</span></span></div>
+                <div id="resultsList" class="bets-list"></div>
+            </div>
+            <div class="telegram-section">
+                <span>📢 زیادکردن/ڕاکێشانی پارە:</span>
+                <a href="https://t.me/kaka_bra" target="_blank" class="telegram-link">@kaka_bra</a>
+            </div>
+            <div class="log-area" id="logArea"></div>
+        `;
+        
+        let row = document.getElementById("betPresetsRow");
+        betValues.forEach(v => {
+            let btn = document.createElement("button");
+            btn.className = "bet-preset" + (selectedBet === v ? " active" : "");
+            btn.innerText = v.toLocaleString();
+            btn.onclick = () => {
+                selectedBet = v;
+                document.getElementById("customBetInput").value = v;
+                document.querySelectorAll(".bet-preset").forEach(b => b.classList.remove("active"));
+                btn.classList.add("active");
+            };
+            row.appendChild(btn);
+        });
+        
+        document.getElementById("decBet").onclick = () => {
+            let val = parseInt(document.getElementById("customBetInput").value) || 100;
+            val = Math.max(1, val - 10);
+            document.getElementById("customBetInput").value = val;
+            selectedBet = val;
+        };
+        document.getElementById("incBet").onclick = () => {
+            let val = parseInt(document.getElementById("customBetInput").value) || 100;
+            val = Math.min(1000000, val + 10);
+            document.getElementById("customBetInput").value = val;
+            selectedBet = val;
+        };
+        document.getElementById("customBetInput").onchange = () => {
+            let val = parseInt(document.getElementById("customBetInput").value) || 100;
+            selectedBet = Math.min(1000000, Math.max(1, val));
+            document.getElementById("customBetInput").value = selectedBet;
+        };
+        
+        document.getElementById("betBtn").onclick = () => placeBetFunc();
+        document.getElementById("cashBtn").onclick = () => cashOutFunc();
+        document.getElementById("fairnessBtn").onclick = () => showFairness();
+        document.getElementById("logoutBtn").onclick = () => {
+            stopAll();
+            setCurrentUser(null);
+            gameDiv.classList.add("hidden");
+            document.getElementById("authContainer").style.display = "block";
+            renderAuth();
+        };
+        
+        document.querySelectorAll(".tab").forEach(tab => {
+            tab.onclick = () => {
+                document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+                tab.classList.add("active");
+                activeTab = tab.dataset.tab;
+                updateResults();
+            };
+        });
+        
+        updateHistory();
+        updateResults();
+        startNewRound();
+        addLog("🛩️ بەخێربێیت! بڕەکانی BET: 100, 250, 500, 1000, 2000, 5000, 10000, 20000, 50000, 100000");
+    }
+    
+    function init() {
+        loadUsers();
+        let sess = getCurrentUser();
+        if (sess) {
+            let users = loadUsers();
+            if (users.find(u => u.username === sess.username && u.password === sess.password)) renderGame();
+            else renderAuth();
+        } else renderAuth();
+    }
+    init();
+</script>
+</body>
+</html>
